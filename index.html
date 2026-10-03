@@ -2450,7 +2450,7 @@
                 }
 
                 // ➔ Swapped `a.id` and `b.id` to sort in DESCENDING order (newest first)
-                combined.sort((a, b) => compareIDs(b.id, a.id));
+                combined.sort((a, b) => compareIDs(a.id, b.id));
 
                 tbody.innerHTML = combined.map(item => {
                     const jsId = escapeJsArg(item.id);
