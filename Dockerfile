@@ -3,8 +3,8 @@ FROM php:8.2-apache
 # Enable Apache rewrite module
 RUN a2enmod rewrite
 
-# Install OpenJDK 17 and MySQL PHP extensions
-RUN apt-get update && apt-get install -y openjdk-17-jre-headless && rm -rf /var/lib/apt/lists/*
+# Install Java Runtime (Debian default) and MySQL PHP extensions
+RUN apt-get update && apt-get install -y default-jre && rm -rf /var/lib/apt/lists/*
 RUN docker-php-ext-install mysqli pdo pdo_mysql
 
 # Copy all website files into Apache web root
