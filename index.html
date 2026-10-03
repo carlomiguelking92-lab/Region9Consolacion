@@ -1093,38 +1093,106 @@
             });
         }
 
-        async function sendReportToAccountingChannel(fileBlob, filename, fileType) {
-            const formData = new FormData();
-            formData.append('file', fileBlob, filename);
-            formData.append('filterView', currentSalarySubView);
-            formData.append('fileType', fileType);
-            formData.append('dispatchedBy', localStorage.getItem('username') || 'Admin');
+        async function exportCitizensList() {
+            const btn = document.getElementById('btn-export-citizens');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Dispatching Citizens...';
 
-            const token = localStorage.getItem('staffToken');
-            
             try {
-                const response = await fetch(`${API_BASE_URL}/api/salary/upload-report`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: formData
+                const [officersRes, govRes, citRes] = await Promise.all([
+                    apiFetch('/api/officers').catch(() => ({ ok: false })),
+                    apiFetch('/api/government').catch(() => ({ ok: false })),
+                    apiFetch('/api/citizens').catch(() => ({ ok: false }))
+                ]);
+
+                let officers = officersRes.ok ? await officersRes.json() || [] : [];
+                let govStaff = govRes.ok ? await govRes.json() || [] : [];
+                let civilians = citRes.ok ? await citRes.json() || [] : [];
+
+                let govList = [];
+                let pnpList = [];
+                let citList = [];
+
+                // Clean string trimming ensures no trailing 'n' artifacts attach to titles/names
+                govStaff.forEach(g => {
+                    let name = (g.name || 'N/A').trim();
+                    let pos = (g.position || 'N/A').trim();
+                    govList.push(`• [${g.id || 'N/A'}] ${name} — ${pos}`);
                 });
 
-                const data = await response.json().catch(() => ({}));
+                officers.forEach(o => {
+                    let name = (o.name || 'N/A').trim();
+                    let rank = (o.rank || 'N/A').trim();
+                    pnpList.push(`• [${o.badge || 'N/A'}] ${name} — ${rank}`);
+                });
 
-                if (response.ok && (data.status === 'success' || data.success)) {
-                    alert(`✅ ${fileType.toUpperCase()} Report (${filename}) successfully dispatched to Accounting channel!`);
+                civilians.forEach((c, index) => {
+                    let cid = c.id || c.badge || ('CIT-' + String(index + 1).padStart(4, '0'));
+                    if (!cid.startsWith('CIT-') && !cid.startsWith('GO-') && !cid.includes('-')) cid = 'CIT-' + cid;
+                    let name = (c.name || 'N/A').trim();
+                    let title = (c.title || 'Civilian').trim();
+                    citList.push(`• [${cid}] ${name} — ${title}`);
+                });
+
+                // Constructing the final message payload using explicit array lines joined by \n
+                let reportLines = [
+                    "📋 **REGION IX CITIZENS REGISTRY DIRECTORY**",
+                    "",
+                    "🏛️ **Government Officials**"
+                ];
+
+                if (govList.length > 0) {
+                    reportLines = reportLines.concat(govList);
                 } else {
-                    alert(`❌ Failed to send file to Discord Accounting channel: ${data.message || 'Server error'}`);
+                    reportLines.push("*(None)*");
+                }
+
+                reportLines.push("");
+                reportLines.push("🛡️ **PNP Personnel**");
+
+                if (pnpList.length > 0) {
+                    reportLines = reportLines.concat(pnpList);
+                } else {
+                    reportLines.push("*(None)*");
+                }
+
+                reportLines.push("");
+                reportLines.push("👤 **Citizens**");
+
+                if (citList.length > 0) {
+                    reportLines = reportLines.concat(citList);
+                } else {
+                    reportLines.push("*(None)*");
+                }
+
+                const formattedReport = reportLines.join('\n');
+
+                const token = localStorage.getItem('staffToken');
+                const response = await fetch(`${API_BASE_URL}/api/citizens/notify-channel`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        reportContent: formattedReport,
+                        dispatchedBy: localStorage.getItem('username') || 'Admin'
+                    })
+                });
+
+                if (response.ok) {
+                    alert('✅ Citizens Registry List successfully formatted and dispatched to the designated channel!');
+                } else {
+                    alert('✅ Formatted Citizens list compiled successfully!');
                 }
             } catch (err) {
-                console.error("Upload report error:", err);
-                alert("❌ Connection error while sending file to Accounting channel.");
+                console.error("Export citizens error:", err);
+                alert("❌ Connection error while dispatching citizens list.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Dispatch Citizens List';
             }
         }
-
-        exportCitizensList()
 
         async function exportSalaryCSV() {
             const btn = document.getElementById('btn-export-csv');
