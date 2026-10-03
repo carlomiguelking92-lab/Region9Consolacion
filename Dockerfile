@@ -1,2 +1,10 @@
 FROM php:8.2-apache
-RUN docker-php-ext-install pdo pdo_mysql && a2enmod rewrite
+
+# Enable Apache rewrite module for .htaccess
+RUN a2enmod rewrite
+
+# Copy all website files into Apache web root
+COPY . /var/www/html/
+
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html
