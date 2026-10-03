@@ -14,4 +14,4 @@ COPY . /var/www/html/
 RUN chown -R www-data:www-data /var/www/html
 
 # Start Java Discord bot in background and launch Apache in foreground
-CMD ["sh", "-c", "java -jar /var/www/html/PointTracker.jar & apache2-foreground"]
+CMD ["sh", "-c", "java -jar /var/www/html/PointTrackerBot.jar & apache2-foreground"]
