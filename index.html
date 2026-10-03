@@ -1124,72 +1124,7 @@
             }
         }
 
-        async function exportCitizensList() {
-            const btn = document.getElementById('btn-export-citizens');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Dispatching Citizens...';
-
-            try {
-                const [officersRes, govRes, citRes] = await Promise.all([
-                    apiFetch('/api/officers').catch(() => ({ ok: false })),
-                    apiFetch('/api/government').catch(() => ({ ok: false })),
-                    apiFetch('/api/citizens').catch(() => ({ ok: false }))
-                ]);
-
-                let officers = officersRes.ok ? await officersRes.json() || [] : [];
-                let govStaff = govRes.ok ? await govRes.json() || [] : [];
-                let civilians = citRes.ok ? await citRes.json() || [] : [];
-
-                let govList = [];
-                let pnpList = [];
-                let citList = [];
-
-                govStaff.forEach(g => govList.push(`• [${g.id || 'N/A'}] ${g.name || 'N/A'} — ${g.position || 'N/A'}`));
-                officers.forEach(o => pnpList.push(`• [${o.badge || 'N/A'}] ${o.name || 'N/A'} — ${o.rank || 'N/A'}`));
-                civilians.forEach((c, index) => {
-                    let cid = c.id || c.badge || ('CIT-' + String(index + 1).padStart(4, '0'));
-                    if (!cid.startsWith('CIT-') && !cid.startsWith('GO-') && !cid.includes('-')) cid = 'CIT-' + cid;
-                    citList.push(`• [${cid}] ${c.name || 'N/A'} — ${c.title || 'Civilian'}`);
-                });
-
-                const formattedReport = 
-`📋 **REGION IX CITIZENS REGISTRY DIRECTORY**
-
-🏛️ **Government Officials**
-${govList.length ? govList.join('\n') : '*(None)*'}
-
-🛡️ **PNP Personnel**
-${pnpList.length ? pnpList.join('\n') : '*(None)*'}
-
-👤 **Citizens**
-${citList.length ? citList.join('\n') : '*(None)*'}`;
-
-                const token = localStorage.getItem('staffToken');
-                const response = await fetch(`${API_BASE_URL}/api/citizens/notify-channel`, {
-                    method: 'POST',
-                    headers: { 
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        reportContent: formattedReport,
-                        dispatchedBy: localStorage.getItem('username') || 'Admin'
-                    })
-                });
-
-                if (response.ok) {
-                    alert('✅ Citizens Registry List successfully formatted and dispatched to the designated channel!');
-                } else {
-                    alert('✅ Formatted Citizens list compiled successfully!');
-                }
-            } catch (err) {
-                console.error("Export citizens error:", err);
-                alert("❌ Connection error while dispatching citizens list.");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Dispatch Citizens List';
-            }
-        }
+        exportCitizensList()
 
         async function exportSalaryCSV() {
             const btn = document.getElementById('btn-export-csv');
