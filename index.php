@@ -35,11 +35,11 @@ define('MINIMUM_SHIFTS_REQUIRED', 3);
  * @return PDO
  */
 function getDBConnection(): PDO {
-    $host = getenv('DB_HOST') ?: 'localhost';
-    $db   = getenv('DB_NAME') ?: (getenv('ROLEPLAY_DB') ?: 'region9_db');
-    $user = getenv('DB_USER') ?: 'root';
-    $pass = getenv('DB_PASS') ?: '';
-    $port = getenv('DB_PORT') ?: '3306';
+    $host = getenv('DB_HOST') ?: 'mysql-3272a288-carlomiguelking93-a176.f.aivencloud.com';
+    $db   = getenv('DB_NAME') ?: (getenv('ROLEPLAY_DB') ?: 'defaultdb');
+    $user = getenv('DB_USER') ?: 'avnadmin';
+    $pass = getenv('DB_PASS') ?: 'AVNS_KG-eoi0GF2BkwXvY6wM';
+    $port = getenv('DB_PORT') ?: '17577';
 
     try {
         $pdo = new PDO("mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4", $user, $pass, [
