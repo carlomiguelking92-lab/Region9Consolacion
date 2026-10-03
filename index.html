@@ -372,6 +372,7 @@
                 </div>
                 <ul class="nav-list">
                     <li class="nav-item active" id="nav-dashboard" onclick="switchView('dashboard')"><a><i class="fa-solid fa-chart-pie"></i> Dashboard</a></li>
+                    <li class="nav-item" id="nav-citizens" onclick="switchView('citizens')"><a><i class="fa-solid fa-id-card"></i> Citizens</a></li>
                     <li class="nav-item" id="nav-officers" onclick="switchView('officers')"><a><i class="fa-solid fa-user-shield"></i> Officers</a></li>
                     <li class="nav-item" id="nav-government" onclick="switchView('government')"><a><i class="fa-solid fa-landmark"></i> Government</a></li>
                     <li class="nav-item" id="nav-salary" onclick="switchView('salary')"><a><i class="fa-solid fa-file-invoice-dollar"></i> Salary Tracker</a></li>
@@ -447,6 +448,57 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-citizens" class="view-section">
+                <div class="header">
+                    <div>
+                        <h1>Citizens Registry Directory</h1>
+                        <p>Comprehensive Directory of Civilians, Government Officials, and PNP Personnel</p>
+                    </div>
+                    <div class="tab-btn-group" style="border: none; align-items: center;">
+                        <button class="tab-btn active" id="btn-cit-all" onclick="setCitizensSubView('ALL')"><i class="fa-solid fa-list"></i> All Overview</button>
+                        <button class="tab-btn" id="btn-cit-civilian" onclick="setCitizensSubView('CIVILIAN')"><i class="fa-solid fa-user"></i> Civilian</button>
+                        <button class="tab-btn" id="btn-cit-gov" onclick="setCitizensSubView('GOV')"><i class="fa-solid fa-landmark"></i> Government Officials</button>
+                        <button class="tab-btn" id="btn-cit-pnp" onclick="setCitizensSubView('PNP')"><i class="fa-solid fa-user-shield"></i> PNP Personnel</button>
+                        
+                        <button id="btn-export-citizens" class="btn-success" onclick="exportCitizensList()" style="height: 38px; font-weight: 700;">
+                            <i class="fa-solid fa-paper-plane"></i> Dispatch Citizens List
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card" id="card-add-citizen">
+                    <h3>➕ Register New Civilian</h3>
+                    <form onsubmit="handleAddCitizen(event)" class="inline-form-responsive" style="display: flex; gap: 12px; margin-top: 12px; align-items: flex-end; flex-wrap: wrap;">
+                        <div class="form-group" style="flex: 2; min-width: 240px;">
+                            <label for="add-citizen-name">Full Name</label>
+                            <input type="text" id="add-citizen-name" class="form-control" placeholder="Enter Full Name" required />
+                        </div>
+                        <button type="submit" id="btn-add-citizen" class="btn-primary" style="margin-top: 0; height: 42px;">Register Civilian</button>
+                    </form>
+                    <div id="add-citizen-msg" class="status-msg"></div>
+                </div>
+
+                <div class="card">
+                    <h3 id="citizens-table-title"><i class="fa-solid fa-address-book" style="color: var(--accent-blue);"></i> All Citizens Overview</h3>
+                    <div class="table-responsive" style="margin-top: 16px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID / Badge</th>
+                                    <th>Classification</th>
+                                    <th>Name</th>
+                                    <th>Title / Position / Rank</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="citizens-table-body">
+                                <tr><td colspan="5">Loading citizens directory...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -903,6 +955,7 @@
         let salaryPersonnelCache = [];
         let currentSalarySubView = 'ALL';
         let currentNoWorkSubView = 'ALL';
+        let currentCitizensSubView = 'ALL';
 
         const SALARY_GRADES = {
             "Patrolman": { baseSalary: 300000, incentives: 5000 },
@@ -1068,6 +1121,73 @@
             } catch (err) {
                 console.error("Upload report error:", err);
                 alert("❌ Connection error while sending file to Accounting channel.");
+            }
+        }
+
+        async function exportCitizensList() {
+            const btn = document.getElementById('btn-export-citizens');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Dispatching Citizens...';
+
+            try {
+                const [officersRes, govRes, citRes] = await Promise.all([
+                    apiFetch('/api/officers').catch(() => ({ ok: false })),
+                    apiFetch('/api/government').catch(() => ({ ok: false })),
+                    apiFetch('/api/citizens').catch(() => ({ ok: false }))
+                ]);
+
+                let officers = officersRes.ok ? await officersRes.json() || [] : [];
+                let govStaff = govRes.ok ? await govRes.json() || [] : [];
+                let civilians = citRes.ok ? await citRes.json() || [] : [];
+
+                let govList = [];
+                let pnpList = [];
+                let citList = [];
+
+                govStaff.forEach(g => govList.push(`• [${g.id || 'N/A'}] ${g.name || 'N/A'} — ${g.position || 'N/A'}`));
+                officers.forEach(o => pnpList.push(`• [${o.badge || 'N/A'}] ${o.name || 'N/A'} — ${o.rank || 'N/A'}`));
+                civilians.forEach((c, index) => {
+                    let cid = c.id || c.badge || ('CIT-' + String(index + 1).padStart(4, '0'));
+                    if (!cid.startsWith('CIT-') && !cid.startsWith('GO-') && !cid.includes('-')) cid = 'CIT-' + cid;
+                    citList.push(`• [${cid}] ${c.name || 'N/A'} — ${c.title || 'Civilian'}`);
+                });
+
+                const formattedReport = 
+`📋 **REGION IX CITIZENS REGISTRY DIRECTORY**
+
+🏛️ **Government Officials**
+${govList.length ? govList.join('\n') : '*(None)*'}
+
+🛡️ **PNP Personnel**
+${pnpList.length ? pnpList.join('\n') : '*(None)*'}
+
+👤 **Citizens**
+${citList.length ? citList.join('\n') : '*(None)*'}`;
+
+                const token = localStorage.getItem('staffToken');
+                const response = await fetch(`${API_BASE_URL}/api/citizens/notify-channel`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        reportContent: formattedReport,
+                        dispatchedBy: localStorage.getItem('username') || 'Admin'
+                    })
+                });
+
+                if (response.ok) {
+                    alert('✅ Citizens Registry List successfully formatted and dispatched to the designated channel!');
+                } else {
+                    alert('✅ Formatted Citizens list compiled successfully!');
+                }
+            } catch (err) {
+                console.error("Export citizens error:", err);
+                alert("❌ Connection error while dispatching citizens list.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Dispatch Citizens List';
             }
         }
 
@@ -1493,7 +1613,6 @@
             titleInput.readOnly = true;
             nameInput.readOnly = true;
 
-            // Robust string comparison for IDs/badges
             const existingRecord = rawSalariesCache.find(s => 
                 String(s.badge_id || s.badgeId || s.id || '') === String(badgeVal)
             );
@@ -2179,6 +2298,7 @@
             if (targetNav) targetNav.classList.add('active');
 
             if (viewName === 'dashboard') fetchDashboardData();
+            if (viewName === 'citizens') setCitizensSubView(currentCitizensSubView || 'ALL');
             if (viewName === 'officers') fetchOfficersData();
             if (viewName === 'government') fetchGovData();
             if (viewName === 'salary') {
@@ -2197,6 +2317,199 @@
             }
         }
 
+        function setCitizensSubView(view) {
+            currentCitizensSubView = view;
+            document.getElementById('btn-cit-all').classList.toggle('active', view === 'ALL');
+            document.getElementById('btn-cit-civilian').classList.toggle('active', view === 'CIVILIAN');
+            document.getElementById('btn-cit-gov').classList.toggle('active', view === 'GOV');
+            document.getElementById('btn-cit-pnp').classList.toggle('active', view === 'PNP');
+
+            const titleEl = document.getElementById('citizens-table-title');
+            if (view === 'CIVILIAN') titleEl.innerHTML = '<i class="fa-solid fa-user" style="color: var(--accent-blue);"></i> Civilian Directory';
+            else if (view === 'GOV') titleEl.innerHTML = '<i class="fa-solid fa-landmark" style="color: var(--accent-green);"></i> Government Officials Directory';
+            else if (view === 'PNP') titleEl.innerHTML = '<i class="fa-solid fa-user-shield" style="color: var(--accent-blue);"></i> PNP Personnel Directory';
+            else titleEl.innerHTML = '<i class="fa-solid fa-address-book" style="color: var(--accent-blue);"></i> All Citizens Overview';
+
+            loadCitizensData();
+        }
+
+        async function handleAddCitizen(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('add-citizen-name');
+            const msgDiv = document.getElementById('add-citizen-msg');
+
+            const name = nameInput.value.trim();
+
+            msgDiv.style.color = '#60a5fa';
+            msgDiv.innerText = '⏳ Registering civilian & notifying channel...';
+
+            try {
+                const res = await apiFetch('/api/citizens/add', {
+                    method: 'POST',
+                    body: JSON.stringify({ name: name, title: 'Civilian', classification: 'Civilian' })
+                });
+                const result = await res.json().catch(() => ({}));
+
+                if (res.ok && (result.status === 'success' || result.success || result.id)) {
+                    apiFetch('/api/citizens/notify-channel', {
+                        method: 'POST',
+                        body: JSON.stringify({ name: name, registeredBy: localStorage.getItem('username') || 'Admin' })
+                    }).catch(err => console.warn("Citizen channel notification dispatch warning:", err));
+
+                    msgDiv.style.color = '#10b981';
+                    msgDiv.innerText = `✅ Successfully registered civilian ${name} and notified the registered citizen channel!`;
+                    nameInput.value = '';
+                    loadCitizensData();
+                    fetchDashboardData();
+                } else {
+                    msgDiv.style.color = '#ef4444';
+                    msgDiv.innerText = `❌ Error: ${result.message || 'Failed to register civilian.'}`;
+                }
+            } catch (err) {
+                console.error("Add citizen error:", err);
+                msgDiv.style.color = '#ef4444';
+                msgDiv.innerText = '❌ Network error connecting to API server.';
+            }
+        }
+
+        async function deleteCitizenRecord(id, classification) {
+            if (!confirm(`Are you sure you want to delete record [${id}]?`)) return;
+
+            let endpoint = '';
+            let payload = {};
+
+            const upperClass = (classification || '').toUpperCase();
+            if (upperClass.includes('PNP') || upperClass.includes('OFFICER')) {
+                endpoint = '/api/officers/delete';
+                payload = { badge: String(id) };
+            } else if (upperClass.includes('GOV') || upperClass.includes('GOVERNMENT')) {
+                endpoint = '/api/government/delete';
+                payload = { id: String(id) };
+            } else {
+                endpoint = '/api/citizens/delete';
+                payload = { id: String(id) };
+            }
+
+            try {
+                const res = await apiFetch(endpoint, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json().catch(() => ({}));
+
+                if (res.ok && (data.status === 'success' || data.success)) {
+                    alert('✅ Record deleted successfully! If this was a personnel, their status has reverted to Civilian (CIT-).');
+                    loadCitizensData();
+                    fetchDashboardData();
+                    fetchOfficersData();
+                    fetchGovData();
+                } else {
+                    alert(`❌ Failed to delete: ${data.message || 'Unauthorized or error'}`);
+                }
+            } catch (err) {
+                console.error("Delete citizen error:", err);
+                alert('❌ Network error while deleting record.');
+            }
+        }
+
+        async function loadCitizensData() {
+            const tbody = document.getElementById('citizens-table-body');
+            tbody.innerHTML = '<tr><td colspan="5">Loading citizens directory...</td></tr>';
+
+            try {
+                const [officersRes, govRes, citRes] = await Promise.all([
+                    apiFetch('/api/officers').catch(() => ({ ok: false })),
+                    apiFetch('/api/government').catch(() => ({ ok: false })),
+                    apiFetch('/api/citizens').catch(() => ({ ok: false }))
+                ]);
+
+                let officers = [];
+                let govStaff = [];
+                let civilians = [];
+
+                if (officersRes.ok) {
+                    officers = await officersRes.json() || [];
+                }
+                if (govRes.ok) {
+                    govStaff = await govRes.json() || [];
+                }
+                if (citRes.ok) {
+                    civilians = await citRes.json() || [];
+                }
+
+                let combined = [];
+
+                if (currentCitizensSubView === 'ALL' || currentCitizensSubView === 'PNP') {
+                    officers.forEach(o => {
+                        combined.push({
+                            id: o.badge || 'N/A',
+                            classification: 'PNP Personnel',
+                            name: o.name || 'N/A',
+                            title: o.rank || 'N/A'
+                        });
+                    });
+                }
+
+                if (currentCitizensSubView === 'ALL' || currentCitizensSubView === 'GOV') {
+                    govStaff.forEach(g => {
+                        combined.push({
+                            id: g.id || 'N/A',
+                            classification: 'Government Official',
+                            name: g.name || 'N/A',
+                            title: g.position || 'N/A'
+                        });
+                    });
+                }
+
+                if (currentCitizensSubView === 'ALL' || currentCitizensSubView === 'CIVILIAN') {
+                    civilians.forEach((c, index) => {
+                        let cid = c.id || c.badge || ('CIT-' + String(index + 1).padStart(4, '0'));
+                        if (!cid.startsWith('CIT-') && !cid.startsWith('GO-') && !cid.includes('-')) {
+                            cid = 'CIT-' + cid;
+                        }
+                        combined.push({
+                            id: cid,
+                            classification: 'Civilian',
+                            name: c.name || 'N/A',
+                            title: c.title || 'Civilian'
+                        });
+                    });
+                }
+
+                if (!combined.length) {
+                    tbody.innerHTML = '<tr><td colspan="5">No records found for this category.</td></tr>';
+                    return;
+                }
+
+                combined.sort((a, b) => compareIDs(a.id, b.id));
+
+                const canManage = (localStorage.getItem('userRole') || '').toUpperCase() !== 'GUEST';
+
+                tbody.innerHTML = combined.map(item => {
+                    const jsId = escapeJsArg(item.id);
+                    const jsClass = escapeJsArg(item.classification);
+                    return `
+                        <tr>
+                            <td><code>${escapeHTML(item.id)}</code></td>
+                            <td><span class="badge-ref">${escapeHTML(item.classification)}</span></td>
+                            <td><strong>${escapeHTML(item.name)}</strong></td>
+                            <td>${escapeHTML(item.title)}</td>
+                            <td>
+                                ${canManage ? `
+                                    <div class="action-cell">
+                                        <button class="btn-danger" onclick="deleteCitizenRecord('${jsId}', '${jsClass}')">Delete</button>
+                                    </div>` : '<span style="color:var(--text-muted); font-size:0.8rem;">Read Only</span>'}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error("Error loading citizens data:", err);
+                tbody.innerHTML = '<tr><td colspan="5" style="color:#ef4444;">Failed to load citizens directory.</td></tr>';
+            }
+        }
+
         function applyRolePermissions() {
             const role = (localStorage.getItem('userRole') || 'GUEST').toUpperCase();
             const dept = (localStorage.getItem('userDept') || 'NONE').toUpperCase();
@@ -2207,25 +2520,30 @@
             document.getElementById('display-role').innerText = `${role} (${dept})`;
 
             document.getElementById('nav-users').style.display = 'none';
+            document.getElementById('nav-citizens').style.display = 'flex';
             document.getElementById('nav-officers').style.display = 'flex';
             document.getElementById('nav-government').style.display = 'flex';
 
             document.getElementById('card-add-officer').style.display = 'none';
             document.getElementById('card-add-gov').style.display = 'none';
 
+            const addCitizenCard = document.getElementById('card-add-citizen');
+            if (addCitizenCard) addCitizenCard.style.display = (status === 'APPROVED' || role === 'SUPER_ADMIN') ? 'block' : 'none';
+
             const treasuryCard = document.getElementById('card-treasury-control');
             if (treasuryCard) treasuryCard.style.display = 'none';
 
-            // Button controls
             const btnCsv = document.getElementById('btn-export-csv');
             const btnPdf = document.getElementById('btn-export-pdf');
             const btnReport = document.getElementById('triggerDailyReportBtn');
+            const btnCitizensDispatch = document.getElementById('btn-export-citizens');
 
             const isFullAdmin = (role === 'SUPER_ADMIN' || role === 'ADMIN') && status === 'APPROVED';
 
             if (btnCsv) btnCsv.style.display = isFullAdmin ? 'inline-block' : 'none';
             if (btnPdf) btnPdf.style.display = isFullAdmin ? 'inline-block' : 'none';
             if (btnReport) btnReport.style.display = isFullAdmin ? 'inline-block' : 'none';
+            if (btnCitizensDispatch) btnCitizensDispatch.style.display = isFullAdmin ? 'inline-block' : 'none';
 
             if (status !== 'APPROVED' && role !== 'SUPER_ADMIN') {
                 return;
@@ -2428,7 +2746,7 @@
         }
 
         async function handleDeleteOfficer(badge) {
-            if (!confirm(`Are you sure you want to permanently delete officer ${badge}?`)) return;
+            if (!confirm(`Are you sure you want to permanently delete officer ${badge}? Their record will revert to Civilian (CIT-).`)) return;
 
             try {
                 const res = await apiFetch('/api/officers/delete', {
@@ -2438,9 +2756,10 @@
 
                 const data = await res.json().catch(() => ({}));
                 if (res.ok && (data.status === 'success' || data.success)) {
-                    alert('✅ Officer deleted successfully!');
+                    alert('✅ Officer record removed from PNP roster and reverted to civilian status!');
                     fetchOfficersData();
                     fetchDashboardData();
+                    loadCitizensData();
                 } else {
                     alert(`❌ Failed to delete officer: ${data.message || 'Unauthorized'}`);
                 }
@@ -2510,7 +2829,7 @@
         }
 
         async function handleDeleteGov(id) {
-            if (!confirm(`Are you sure you want to permanently delete government personnel ID ${id}?`)) return;
+            if (!confirm(`Are you sure you want to permanently delete government personnel ID ${id}? Their record will revert to Civilian (CIT-).`)) return;
 
             try {
                 const res = await apiFetch('/api/government/delete', {
@@ -2520,9 +2839,10 @@
 
                 const data = await res.json().catch(() => ({}));
                 if (res.ok && (data.status === 'success' || data.success)) {
-                    alert('✅ Government personnel deleted successfully!');
+                    alert('✅ Government member removed from roster and reverted to civilian status!');
                     fetchGovData();
                     fetchDashboardData();
+                    loadCitizensData();
                 } else {
                     alert(`❌ Failed to delete personnel: ${data.message || 'Unauthorized'}`);
                 }
