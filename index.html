@@ -487,12 +487,12 @@
                     <div class="table-responsive" style="margin-top: 16px;">
                         <table>
                             <thead>
-                                <tr>
+                                <tr id="citizens-table-header-row">
                                     <th>ID / Badge</th>
                                     <th>Classification</th>
                                     <th>Name</th>
                                     <th>Title / Position / Rank</th>
-                                    <th>Actions</th>
+                                    <th id="th-citizens-actions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="citizens-table-body">
@@ -553,12 +553,12 @@
                     <div class="table-responsive" style="margin-top: 16px;">
                         <table>
                             <thead>
-                                <tr id="officers-table-header">
+                                <tr id="officers-table-header-row">
                                     <th>Badge Number</th>
                                     <th>Name</th>
                                     <th>Rank</th>
                                     <th>Total Points</th>
-                                    <th>Actions</th>
+                                    <th id="th-officers-actions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="officers-table-body">
@@ -598,12 +598,12 @@
                     <div class="table-responsive" style="margin-top: 16px;">
                         <table>
                             <thead>
-                                <tr>
+                                <tr id="gov-table-header-row">
                                     <th>ID Number</th>
                                     <th>Name</th>
                                     <th>Position</th>
                                     <th>Total Points</th>
-                                    <th>Actions</th>
+                                    <th id="th-gov-actions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="gov-table-body">
@@ -720,7 +720,7 @@
                     <div class="table-responsive" style="margin-top: 16px;">
                         <table>
                             <thead>
-                                <tr>
+                                <tr id="pnp-salary-header-row">
                                     <th>Badge / ID</th>
                                     <th>Rank / Title</th>
                                     <th>Name</th>
@@ -729,8 +729,8 @@
                                     <th>Pro-Rated Base</th>
                                     <th>Incentives</th>
                                     <th>Total Pro-Rated / Wk</th>
-                                    <th style="min-width: 170px;">Payment Status</th>
-                                    <th>Actions</th>
+                                    <th id="th-pnp-status" style="min-width: 170px;">Payment Status</th>
+                                    <th id="th-pnp-actions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="pnp-salary-table-body">
@@ -767,7 +767,7 @@
                     <div class="table-responsive" style="margin-top: 16px;">
                         <table>
                             <thead>
-                                <tr>
+                                <tr id="gov-salary-header-row">
                                     <th>ID Serial</th>
                                     <th>Position / Title</th>
                                     <th>Name</th>
@@ -776,8 +776,8 @@
                                     <th>Pro-Rated Base</th>
                                     <th>Incentives</th>
                                     <th>Total Pro-Rated / Wk</th>
-                                    <th style="min-width: 170px;">Payment Status</th>
-                                    <th>Actions</th>
+                                    <th id="th-gov-status" style="min-width: 170px;">Payment Status</th>
+                                    <th id="th-gov-actions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="gov-salary-table-body">
@@ -1055,7 +1055,7 @@
             } finally {
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerText = "☀️ Daily Report & Reset";
+                    btn.innerText = "☀ Daily Report & Reset";
                 }
             }
         }
@@ -1582,12 +1582,16 @@
             const addCard = document.getElementById('card-add-salary');
             const deptSelect = document.getElementById('sal-dept');
 
+            const role = (localStorage.getItem('userRole') || 'GUEST').toUpperCase();
+            const status = (localStorage.getItem('userStatus') || '').toUpperCase();
+            const canManage = (role === 'SUPER_ADMIN' || role === 'ADMIN') && status === 'APPROVED';
+
             if (view === 'PNP') {
                 pnpCard.style.display = 'block';
                 govCard.style.display = 'none';
                 grandCard.style.display = 'none';
 
-                if (addCard) addCard.style.display = 'block';
+                if (addCard) addCard.style.display = canManage ? 'block' : 'none';
                 if (deptSelect) {
                     deptSelect.value = 'PNP';
                     deptSelect.disabled = true;
@@ -1598,7 +1602,7 @@
                 govCard.style.display = 'block';
                 grandCard.style.display = 'none';
 
-                if (addCard) addCard.style.display = 'block';
+                if (addCard) addCard.style.display = canManage ? 'block' : 'none';
                 if (deptSelect) {
                     deptSelect.value = 'GOV';
                     deptSelect.disabled = true;
@@ -1781,6 +1785,21 @@
             const pnpTbody = document.getElementById('pnp-salary-table-body');
             const govTbody = document.getElementById('gov-salary-table-body');
 
+            const role = (localStorage.getItem('userRole') || 'GUEST').toUpperCase();
+            const status = (localStorage.getItem('userStatus') || '').toUpperCase();
+            const canManageSalary = (role === 'SUPER_ADMIN' || role === 'ADMIN') && status === 'APPROVED';
+
+            // Toggle table header columns based on admin permissions
+            const thPnpStatus = document.getElementById('th-pnp-status');
+            const thPnpActions = document.getElementById('th-pnp-actions');
+            const thGovStatus = document.getElementById('th-gov-status');
+            const thGovActions = document.getElementById('th-gov-actions');
+
+            if (thPnpStatus) thPnpStatus.style.display = canManageSalary ? '' : 'none';
+            if (thPnpActions) thPnpActions.style.display = canManageSalary ? '' : 'none';
+            if (thGovStatus) thGovStatus.style.display = canManageSalary ? '' : 'none';
+            if (thGovActions) thGovActions.style.display = canManageSalary ? '' : 'none';
+
             if (!rawSalariesCache || !rawSalariesCache.length) {
                 pnpTbody.innerHTML = '<tr><td colspan="10">No salary records found.</td></tr>';
                 govTbody.innerHTML = '<tr><td colspan="10">No salary records found.</td></tr>';
@@ -1827,6 +1846,19 @@
                 const isUnpaid = !isPaid && !isInactive;
                 const dropdownClass = isPaid ? 'paid' : (isInactive ? 'inactive' : 'unpaid');
 
+                const adminColumnsHtml = canManageSalary ? `
+                    <td>
+                        <select class="status-dropdown ${dropdownClass}" onchange="updateSalaryStatus(this, '${jsKey}', this.value)">
+                            <option value="unpaid" ${isUnpaid ? 'selected' : ''}>No Salary / Unpaid</option>
+                            <option value="paid" ${isPaid ? 'selected' : ''}>Mark as Paid</option>
+                            <option value="inactive" ${isInactive ? 'selected' : ''}>Mark as Inactive (IA)</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button class="btn-danger" onclick="deleteSalaryRecord('${jsKey}')">Delete</button>
+                    </td>
+                ` : '';
+
                 return `
                     <tr>
                         <td><code>${keyEscaped}</code></td>
@@ -1837,16 +1869,7 @@
                         <td><strong style="color: var(--accent-green);">${formatCurrency(proRatedBase)}</strong></td>
                         <td>${formatCurrency(i)}</td>
                         <td><strong>${formatCurrency(tw)}</strong></td>
-                        <td>
-                            <select class="status-dropdown ${dropdownClass}" onchange="updateSalaryStatus(this, '${jsKey}', this.value)">
-                                <option value="unpaid" ${isUnpaid ? 'selected' : ''}>No Salary / Unpaid</option>
-                                <option value="paid" ${isPaid ? 'selected' : ''}>Mark as Paid</option>
-                                <option value="inactive" ${isInactive ? 'selected' : ''}>Mark as Inactive (IA)</option>
-                            </select>
-                        </td>
-                        <td>
-                            <button class="btn-danger" onclick="deleteSalaryRecord('${jsKey}')">Delete</button>
-                        </td>
+                        ${adminColumnsHtml}
                     </tr>
                 `;
             }).join('') : '<tr><td colspan="10">No salary records found.</td></tr>';
@@ -1886,6 +1909,19 @@
                 const isUnpaid = !isPaid && !isInactive;
                 const dropdownClass = isPaid ? 'paid' : (isInactive ? 'inactive' : 'unpaid');
 
+                const adminColumnsHtml = canManageSalary ? `
+                    <td>
+                        <select class="status-dropdown ${dropdownClass}" onchange="updateSalaryStatus(this, '${jsKey}', this.value)">
+                            <option value="unpaid" ${isUnpaid ? 'selected' : ''}>No Salary / Unpaid</option>
+                            <option value="paid" ${isPaid ? 'selected' : ''}>Mark as Paid</option>
+                            <option value="inactive" ${isInactive ? 'selected' : ''}>Mark as Inactive (IA)</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button class="btn-danger" onclick="deleteSalaryRecord('${jsKey}')">Delete</button>
+                    </td>
+                ` : '';
+
                 return `
                     <tr>
                         <td><code>${keyEscaped}</code></td>
@@ -1896,16 +1932,7 @@
                         <td><strong style="color: var(--accent-green);">${formatCurrency(proRatedBase)}</strong></td>
                         <td>${formatCurrency(i)}</td>
                         <td><strong>${formatCurrency(tw)}</strong></td>
-                        <td>
-                            <select class="status-dropdown ${dropdownClass}" onchange="updateSalaryStatus(this, '${jsKey}', this.value)">
-                                <option value="unpaid" ${isUnpaid ? 'selected' : ''}>No Salary / Unpaid</option>
-                                <option value="paid" ${isPaid ? 'selected' : ''}>Mark as Paid</option>
-                                <option value="inactive" ${isInactive ? 'selected' : ''}>Mark as Inactive (IA)</option>
-                            </select>
-                        </td>
-                        <td>
-                            <button class="btn-danger" onclick="deleteSalaryRecord('${jsKey}')">Delete</button>
-                        </td>
+                        ${adminColumnsHtml}
                     </tr>
                 `;
             }).join('') : '<tr><td colspan="10">No salary records found.</td></tr>';
@@ -2350,6 +2377,13 @@
             const tbody = document.getElementById('citizens-table-body');
             tbody.innerHTML = '<tr><td colspan="5">Loading citizens directory...</td></tr>';
 
+            const role = (localStorage.getItem('userRole') || 'GUEST').toUpperCase();
+            const status = (localStorage.getItem('userStatus') || '').toUpperCase();
+            const canManage = (role === 'SUPER_ADMIN' || role === 'ADMIN') && status === 'APPROVED';
+
+            const thCitizensActions = document.getElementById('th-citizens-actions');
+            if (thCitizensActions) thCitizensActions.style.display = canManage ? '' : 'none';
+
             try {
                 const [officersRes, govRes, citRes] = await Promise.all([
                     apiFetch('/api/officers').catch(() => ({ ok: false })),
@@ -2417,23 +2451,22 @@
 
                 combined.sort((a, b) => compareIDs(a.id, b.id));
 
-                const canManage = (localStorage.getItem('userRole') || '').toUpperCase() !== 'GUEST';
-
                 tbody.innerHTML = combined.map(item => {
                     const jsId = escapeJsArg(item.id);
                     const jsClass = escapeJsArg(item.classification);
+                    const actionsTd = canManage ? `
+                        <td>
+                            <div class="action-cell">
+                                <button class="btn-danger" onclick="deleteCitizenRecord('${jsId}', '${jsClass}')">Delete</button>
+                            </div>
+                        </td>` : '';
                     return `
                         <tr>
                             <td><code>${escapeHTML(item.id)}</code></td>
                             <td><span class="badge-ref">${escapeHTML(item.classification)}</span></td>
                             <td><strong>${escapeHTML(item.name)}</strong></td>
                             <td>${escapeHTML(item.title)}</td>
-                            <td>
-                                ${canManage ? `
-                                    <div class="action-cell">
-                                        <button class="btn-danger" onclick="deleteCitizenRecord('${jsId}', '${jsClass}')">Delete</button>
-                                    </div>` : '<span style="color:var(--text-muted); font-size:0.8rem;">Read Only</span>'}
-                            </td>
+                            ${actionsTd}
                         </tr>
                     `;
                 }).join('');
@@ -2461,8 +2494,12 @@
             document.getElementById('card-add-officer').style.display = 'none';
             document.getElementById('card-add-gov').style.display = 'none';
 
+            // Hide "Register New Civilian" card for regular members (read-only)
             const addCitizenCard = document.getElementById('card-add-citizen');
-            if (addCitizenCard) addCitizenCard.style.display = (status === 'APPROVED' || role === 'SUPER_ADMIN') ? 'block' : 'none';
+            if (addCitizenCard) {
+                const isFullAdmin = (role === 'SUPER_ADMIN' || role === 'ADMIN') && status === 'APPROVED';
+                addCitizenCard.style.display = isFullAdmin ? 'block' : 'none';
+            }
 
             const treasuryCard = document.getElementById('card-treasury-control');
             if (treasuryCard) treasuryCard.style.display = 'none';
@@ -2494,15 +2531,10 @@
             if (role === 'ADMIN') {
                 if (treasuryCard) treasuryCard.style.display = 'block';
                 if (dept === 'GOV') {
-                    document.getElementById('nav-officers').style.display = 'none';
                     document.getElementById('card-add-gov').style.display = 'block';
                 } else if (dept === 'PNP') {
-                    document.getElementById('nav-government').style.display = 'none';
                     document.getElementById('card-add-officer').style.display = 'block';
                 }
-            } else if (role === 'MEMBER') {
-                if (dept === 'GOV') document.getElementById('nav-officers').style.display = 'none';
-                if (dept === 'PNP') document.getElementById('nav-government').style.display = 'none';
             }
         }
 
@@ -2647,6 +2679,9 @@
                     const tbody = document.getElementById('officers-table-body');
                     const canManage = isPnpAdminOrSuperAdmin();
 
+                    const thOfficersActions = document.getElementById('th-officers-actions');
+                    if (thOfficersActions) thOfficersActions.style.display = canManage ? '' : 'none';
+
                     if (!data.length) {
                         tbody.innerHTML = '<tr><td colspan="5">No officers found.</td></tr>';
                         return;
@@ -2657,19 +2692,20 @@
                     tbody.innerHTML = data.map(item => {
                         const jsBadge = escapeJsArg(item.badge);
                         const jsRank = escapeJsArg(item.rank);
+                        const actionsTd = canManage ? `
+                            <td>
+                                <div class="action-cell">
+                                    <button class="btn-warning" onclick="handlePromoteOfficer('${jsBadge}', '${jsRank}')">Promote</button>
+                                    <button class="btn-danger" onclick="handleDeleteOfficer('${jsBadge}')">Delete</button>
+                                </div>
+                            </td>` : '';
                         return `
                             <tr>
                                 <td><code>${escapeHTML(item.badge)}</code></td>
                                 <td><strong>${escapeHTML(item.name || 'N/A')}</strong></td>
                                 <td>${escapeHTML(item.rank)}</td>
                                 <td>${escapeHTML(item.points)} pts</td>
-                                ${canManage ? `
-                                    <td>
-                                        <div class="action-cell">
-                                            <button class="btn-warning" onclick="handlePromoteOfficer('${jsBadge}', '${jsRank}')">Promote</button>
-                                            <button class="btn-danger" onclick="handleDeleteOfficer('${jsBadge}')">Delete</button>
-                                        </div>
-                                    </td>` : '<td><span style="color:var(--text-muted); font-size:0.8rem;">Read Only</span></td>'}
+                                ${actionsTd}
                             </tr>
                         `;
                     }).join('');
@@ -2732,6 +2768,9 @@
                     const tbody = document.getElementById('gov-table-body');
                     const canManage = isGovAdminOrSuperAdmin();
 
+                    const thGovActions = document.getElementById('th-gov-actions');
+                    if (thGovActions) thGovActions.style.display = canManage ? '' : 'none';
+
                     if (!data.length) {
                         tbody.innerHTML = '<tr><td colspan="5">No government staff found.</td></tr>';
                         return;
@@ -2741,18 +2780,19 @@
 
                     tbody.innerHTML = data.map(item => {
                         const jsId = escapeJsArg(item.id);
+                        const actionsTd = canManage ? `
+                            <td>
+                                <div class="action-cell">
+                                    <button class="btn-danger" onclick="handleDeleteGov('${jsId}')">Delete</button>
+                                </div>
+                            </td>` : '';
                         return `
                             <tr>
                                 <td><code>${escapeHTML(item.id)}</code></td>
                                 <td><strong>${escapeHTML(item.name || 'N/A')}</strong></td>
                                 <td>${escapeHTML(item.position)}</td>
                                 <td>${escapeHTML(item.points)} pts</td>
-                                ${canManage ? `
-                                    <td>
-                                        <div class="action-cell">
-                                            <button class="btn-danger" onclick="handleDeleteGov('${jsId}')">Delete</button>
-                                        </div>
-                                    </td>` : '<td><span style="color:var(--text-muted); font-size:0.8rem;">Read Only</span></td>'}
+                                ${actionsTd}
                             </tr>
                         `;
                     }).join('');
