@@ -1099,52 +1099,6 @@
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Dispatching Citizens...';
 
             try {
-                const [officersRes, govRes, citRes] = await Promise.all([
-                    apiFetch('/api/officers').catch(() => ({ ok: false })),
-                    apiFetch('/api/government').catch(() => ({ ok: false })),
-                    apiFetch('/api/citizens').catch(() => ({ ok: false }))
-                ]);
-
-                let officers = officersRes.ok ? await officersRes.json() || [] : [];
-                let govStaff = govRes.ok ? await govRes.json() || [] : [];
-                let civilians = citRes.ok ? await citRes.json() || [] : [];
-
-                let govList = [];
-                let pnpList = [];
-                let citList = [];
-
-                govStaff.forEach(g => {
-                    let name = String(g.name || 'N/A').trim();
-                    let pos = String(g.position || 'N/A').trim();
-                    govList.push(`• [${g.id || 'N/A'}] ${name} — ${pos}`);
-                });
-
-                officers.forEach(o => {
-                    let name = String(o.name || 'N/A').trim();
-                    let rank = String(o.rank || 'N/A').trim();
-                    pnpList.push(`• [${o.badge || 'N/A'}] ${name} — ${rank}`);
-                });
-
-                civilians.forEach((c, index) => {
-                    let cid = c.id || c.badge || ('CIT-' + String(index + 1).padStart(4, '0'));
-                    if (!cid.startsWith('CIT-') && !cid.startsWith('GO-') && !cid.includes('-')) cid = 'CIT-' + cid;
-                    let name = String(c.name || 'N/A').trim();
-                    let title = String(c.title || 'Civilian').trim();
-                    citList.push(`• [${cid}] ${name} — ${title}`);
-                });
-
-                // Build clean vertically stacked text blocks with real line breaks
-                let fullReportText = [
-                    "🏛️ **Government Officials**",
-                    govList.length > 0 ? govList.join('\n') : "*(None)*",
-                    "",
-                    "🛡️ **PNP Personnel**",
-                    pnpList.length > 0 ? pnpList.join('\n') : "*(None)*",
-                    "",
-                    "👤 **Citizens**",
-                    citList.length > 0 ? citList.join('\n') : "*(None)*"
-                ].join('\n');
-
                 const token = localStorage.getItem('staffToken');
                 const response = await fetch(`${API_BASE_URL}/api/citizens/notify-channel`, {
                     method: 'POST',
@@ -1153,15 +1107,14 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ 
-                        reportContent: fullReportText,
                         dispatchedBy: localStorage.getItem('username') || 'Admin'
                     })
                 });
 
                 if (response.ok) {
-                    alert('✅ Citizens Registry List successfully formatted and dispatched!');
+                    alert('✅ Citizens Registry List successfully dispatched to #registered-citizens!');
                 } else {
-                    alert('⚠️ Dispatched, but check server response.');
+                    alert('❌ Failed to dispatch citizens list.');
                 }
             } catch (err) {
                 console.error("Export citizens error:", err);
