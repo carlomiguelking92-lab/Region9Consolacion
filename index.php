@@ -36,7 +36,7 @@ define('MINIMUM_SHIFTS_REQUIRED', 3);
  */
 function getDBConnection(): PDO {
     $host = getenv('DB_HOST') ?: 'mysql-3272a288-carlomiguelking93-a176.f.aivencloud.com';
-    $db   = getenv('DB_NAME') ?: (getenv('ROLEPLAY_DB') ?: 'defaultdb');
+    $db   = getenv('DB_NAME') ?: 'defaultdb';
     $user = getenv('DB_USER') ?: 'avnadmin';
     $pass = getenv('DB_PASS') ?: 'AVNS_KG-eoi0GF2BkwXvY6wM';
     $port = getenv('DB_PORT') ?: '17577';
