@@ -963,8 +963,8 @@
 
         function parseCurrency(str) {
             if (!str) return 0;
-            if (typeof str === 'number') return str;
-            return parseFloat(str.replace(/[^0-9.-]+/g, '')) || 0;
+            if (typeof str === 'number') return isNaN(str) ? 0 : str;
+            return parseFloat(String(str).replace(/[^0-9.-]+/g, '')) || 0;
         }
 
         function formatCurrency(num) {
@@ -1493,8 +1493,9 @@
             titleInput.readOnly = true;
             nameInput.readOnly = true;
 
+            // Robust string comparison for IDs/badges
             const existingRecord = rawSalariesCache.find(s => 
-                (s.badge_id || s.badgeId || s.id) === badgeVal
+                String(s.badge_id || s.badgeId || s.id || '') === String(badgeVal)
             );
 
             if (existingRecord) {
@@ -1507,11 +1508,11 @@
                 Object.keys(SALARY_GRADES).find(k => k.toLowerCase() === titleVal.toLowerCase());
 
             if (matchedKey && SALARY_GRADES[matchedKey]) {
-                baseInput.value = SALARY_GRADES[matchedKey].baseSalary.toFixed(2);
-                incInput.value = SALARY_GRADES[matchedKey].incentives.toFixed(2);
+                baseInput.value = parseCurrency(SALARY_GRADES[matchedKey].baseSalary).toFixed(2);
+                incInput.value = parseCurrency(SALARY_GRADES[matchedKey].incentives).toFixed(2);
             } else {
-                baseInput.value = (person.baseSalary || person.salary || 0).toFixed(2);
-                incInput.value = (person.incentives || 0).toFixed(2);
+                baseInput.value = parseCurrency(person.baseSalary || person.salary || 0).toFixed(2);
+                incInput.value = parseCurrency(person.incentives || 0).toFixed(2);
             }
         }
 
@@ -1584,7 +1585,7 @@
                     const data = await res.json();
                     const input = document.getElementById('treasury-amount-input');
                     if (input && data.amount !== undefined) {
-                        input.value = parseFloat(data.amount).toFixed(2);
+                        input.value = parseCurrency(data.amount).toFixed(2);
                     }
                 }
             } catch (e) {
@@ -1595,7 +1596,13 @@
         async function updateTreasuryBalance() {
             const input = document.getElementById('treasury-amount-input');
             const msgDiv = document.getElementById('treasury-status-msg');
-            const amount = parseFloat(input.value) || 0;
+            const amount = parseCurrency(input.value);
+
+            if (amount < 0) {
+                msgDiv.style.color = '#ef4444';
+                msgDiv.innerText = '❌ Treasury balance cannot be negative.';
+                return;
+            }
 
             msgDiv.style.color = '#60a5fa';
             msgDiv.innerText = '⏳ Updating Treasury balance...';
@@ -1621,7 +1628,7 @@
         }
 
         async function updateSalaryStatus(selectElement, recordKey, actionType) {
-            const item = rawSalariesCache.find(s => (s.badge_id == recordKey || s.badgeId == recordKey || s.id == recordKey));
+            const item = rawSalariesCache.find(s => String(s.badge_id || s.badgeId || s.id || '') === String(recordKey));
 
             if (!item) {
                 alert("❌ Record not found in local cache.");
@@ -1899,8 +1906,8 @@
             const title = document.getElementById('sal-title').value.trim();
             const name = document.getElementById('sal-name').value.trim();
             const badgeId = document.getElementById('sal-badge').value.trim();
-            const baseSalary = parseFloat(document.getElementById('sal-base').value) || 0;
-            const incentives = parseFloat(document.getElementById('sal-incentives').value) || 0;
+            const baseSalary = parseCurrency(document.getElementById('sal-base').value);
+            const incentives = parseCurrency(document.getElementById('sal-incentives').value);
 
             if (baseSalary < 0 || incentives < 0) {
                 msgDiv.style.color = '#ef4444';
@@ -1958,8 +1965,10 @@
         function toggleMobileSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
-            sidebar.classList.toggle('active');
-            overlay.classList.toggle('active');
+            if (sidebar && overlay) {
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active');
+            }
         }
 
         function getAuthHeaders() {
@@ -2163,10 +2172,11 @@
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
 
-            document.getElementById('view-' + viewName).classList.add('active');
-            if (document.getElementById('nav-' + viewName)) {
-                document.getElementById('nav-' + viewName).classList.add('active');
-            }
+            const targetSection = document.getElementById('view-' + viewName);
+            if (targetSection) targetSection.classList.add('active');
+
+            const targetNav = document.getElementById('nav-' + viewName);
+            if (targetNav) targetNav.classList.add('active');
 
             if (viewName === 'dashboard') fetchDashboardData();
             if (viewName === 'officers') fetchOfficersData();
