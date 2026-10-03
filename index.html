@@ -1133,6 +1133,18 @@
                     citList.push(`• [${cid}] ${name} — ${title}`);
                 });
 
+                // Build clean vertically stacked text blocks with real line breaks
+                let fullReportText = [
+                    "🏛️ **Government Officials**",
+                    govList.length > 0 ? govList.join('\n') : "*(None)*",
+                    "",
+                    "🛡️ **PNP Personnel**",
+                    pnpList.length > 0 ? pnpList.join('\n') : "*(None)*",
+                    "",
+                    "👤 **Citizens**",
+                    citList.length > 0 ? citList.join('\n') : "*(None)*"
+                ].join('\n');
+
                 const token = localStorage.getItem('staffToken');
                 const response = await fetch(`${API_BASE_URL}/api/citizens/notify-channel`, {
                     method: 'POST',
@@ -1141,15 +1153,13 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ 
-                        govList: govList,
-                        pnpList: pnpList,
-                        citList: citList,
+                        reportContent: fullReportText,
                         dispatchedBy: localStorage.getItem('username') || 'Admin'
                     })
                 });
 
                 if (response.ok) {
-                    alert('✅ Citizens Registry List successfully formatted and dispatched to the designated channel!');
+                    alert('✅ Citizens Registry List successfully formatted and dispatched!');
                 } else {
                     alert('⚠️ Dispatched, but check server response.');
                 }
