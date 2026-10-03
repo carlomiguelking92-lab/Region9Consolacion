@@ -1113,59 +1113,25 @@
                 let pnpList = [];
                 let citList = [];
 
-                // Clean string trimming ensures no trailing 'n' artifacts attach to titles/names
                 govStaff.forEach(g => {
-                    let name = (g.name || 'N/A').trim();
-                    let pos = (g.position || 'N/A').trim();
+                    let name = String(g.name || 'N/A').trim();
+                    let pos = String(g.position || 'N/A').trim();
                     govList.push(`• [${g.id || 'N/A'}] ${name} — ${pos}`);
                 });
 
                 officers.forEach(o => {
-                    let name = (o.name || 'N/A').trim();
-                    let rank = (o.rank || 'N/A').trim();
+                    let name = String(o.name || 'N/A').trim();
+                    let rank = String(o.rank || 'N/A').trim();
                     pnpList.push(`• [${o.badge || 'N/A'}] ${name} — ${rank}`);
                 });
 
                 civilians.forEach((c, index) => {
                     let cid = c.id || c.badge || ('CIT-' + String(index + 1).padStart(4, '0'));
                     if (!cid.startsWith('CIT-') && !cid.startsWith('GO-') && !cid.includes('-')) cid = 'CIT-' + cid;
-                    let name = (c.name || 'N/A').trim();
-                    let title = (c.title || 'Civilian').trim();
+                    let name = String(c.name || 'N/A').trim();
+                    let title = String(c.title || 'Civilian').trim();
                     citList.push(`• [${cid}] ${name} — ${title}`);
                 });
-
-                // Constructing the final message payload using explicit array lines joined by \n
-                let reportLines = [
-                    "📋 **REGION IX CITIZENS REGISTRY DIRECTORY**",
-                    "",
-                    "🏛️ **Government Officials**"
-                ];
-
-                if (govList.length > 0) {
-                    reportLines = reportLines.concat(govList);
-                } else {
-                    reportLines.push("*(None)*");
-                }
-
-                reportLines.push("");
-                reportLines.push("🛡️ **PNP Personnel**");
-
-                if (pnpList.length > 0) {
-                    reportLines = reportLines.concat(pnpList);
-                } else {
-                    reportLines.push("*(None)*");
-                }
-
-                reportLines.push("");
-                reportLines.push("👤 **Citizens**");
-
-                if (citList.length > 0) {
-                    reportLines = reportLines.concat(citList);
-                } else {
-                    reportLines.push("*(None)*");
-                }
-
-                const formattedReport = reportLines.join('\n');
 
                 const token = localStorage.getItem('staffToken');
                 const response = await fetch(`${API_BASE_URL}/api/citizens/notify-channel`, {
@@ -1175,7 +1141,9 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ 
-                        reportContent: formattedReport,
+                        govList: govList,
+                        pnpList: pnpList,
+                        citList: citList,
                         dispatchedBy: localStorage.getItem('username') || 'Admin'
                     })
                 });
@@ -1183,7 +1151,7 @@
                 if (response.ok) {
                     alert('✅ Citizens Registry List successfully formatted and dispatched to the designated channel!');
                 } else {
-                    alert('✅ Formatted Citizens list compiled successfully!');
+                    alert('⚠️ Dispatched, but check server response.');
                 }
             } catch (err) {
                 console.error("Export citizens error:", err);
