@@ -407,7 +407,6 @@
             </button>
         </div>
 
-        <!-- RESTRUCTURED SIDEBAR WITH PINNED LOGOUT & SCROLLABLE NAV -->
         <div class="sidebar" id="sidebar">
             <div class="brand">
                 <i class="fa-solid fa-shield-halved" style="color: var(--accent-blue);"></i>
@@ -434,7 +433,6 @@
                 <button id="auth-action-btn" class="btn-danger" onclick="handleLogout()" style="width: 100%; margin-top: 4px;">Logout</button>
             </div>
         </div>
-        <!-- ---------------------------------------------------- -->
 
         <div class="main-content">
             <div id="view-dashboard" class="view-section active">
@@ -498,7 +496,6 @@
                 </div>
             </div>
 
-            <!-- CITIZENS VIEW WITH SUB-TABS -->
             <div id="view-citizens" class="view-section">
                 <div class="header">
                     <div>
@@ -512,7 +509,6 @@
                     </div>
                 </div>
 
-                <!-- SUB-TABS FOR CITIZENS SECTION -->
                 <div class="tab-btn-group" id="citizens-subtab-group">
                     <button class="tab-btn active" id="btn-cit-all" onclick="setCitizensSubView('ALL')"><i class="fa-solid fa-list-check"></i> All Overview</button>
                     <button class="tab-btn" id="btn-cit-civilian" onclick="setCitizensSubView('CIVILIAN')"><i class="fa-solid fa-user"></i> Civilian</button>
@@ -619,7 +615,6 @@
                 </div>
             </div>
 
-            <!-- SEPARATE GOVERNMENT DASHBOARD TAB -->
             <div id="view-government" class="view-section">
                 <div class="header">
                     <div>
@@ -1185,6 +1180,40 @@
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Dispatch Citizens List';
             }
+        }
+
+        async function sendReportToAccountingChannel(blob, filename, fileType) {
+            // Trigger local download
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // Attempt backend notification dispatch
+            try {
+                const token = localStorage.getItem('staffToken');
+                const formData = new FormData();
+                formData.append('report', blob, filename);
+                formData.append('fileType', fileType);
+                formData.append('dispatchedBy', localStorage.getItem('username') || 'Admin');
+                formData.append('filter', currentSalarySubView);
+
+                await fetch(`${API_BASE_URL}/api/salary/notify-accounting`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+            } catch (err) {
+                console.warn("Accounting notification dispatch warning:", err);
+            }
+
+            alert(`✅ ${fileType.toUpperCase()} Salary Report generated and downloaded successfully!`);
         }
 
         async function exportSalaryCSV() {
@@ -2466,7 +2495,6 @@
 
                 let combinedList = [];
 
-                // 1. Pure Civilians (Strictly from /api/citizens)
                 civilians.forEach((c, index) => {
                     let cid = c.id || c.badge || ('CIT-' + String(index + 1).padStart(4, '0'));
                     if (!cid.startsWith('CIT-') && !cid.startsWith('GO-') && !cid.includes('-')) {
@@ -2483,7 +2511,6 @@
                     });
                 });
 
-                // 2. Government Officials (Keep GO- ID)
                 govOfficials.forEach(g => {
                     combinedList.push({
                         id: g.id || 'GO-0000',
@@ -2496,7 +2523,6 @@
                     });
                 });
 
-                // 3. PNP Officers (Keep Badge ID e.g., 09- or O09-)
                 pnpOfficers.forEach(p => {
                     combinedList.push({
                         id: p.badge || '09-0000',
@@ -2509,12 +2535,11 @@
                     });
                 });
 
-                // Filter based on active sub-view
                 let filteredList = combinedList.filter(item => {
                     if (currentCitizensSubView === 'CIVILIAN') return item.isPureCivilian;
                     if (currentCitizensSubView === 'GOV') return item.classification === 'Government Official';
                     if (currentCitizensSubView === 'PNP') return item.classification === 'PNP Personnel';
-                    return true; // 'ALL'
+                    return true;
                 });
 
                 if (!filteredList.length) {
